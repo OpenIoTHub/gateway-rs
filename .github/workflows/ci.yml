@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  rust_toolchain: nightly
+
+jobs:
+  compile:
+    name: Compile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.rust_toolchain }}
+          components: rustfmt, clippy
+      - name: Setup | Std
+        run: rustup component add rust-src --toolchain ${{ env.rust_toolchain }}-x86_64-unknown-linux-gnu
+      - name: Setup | Default to nightly
+        run: rustup default ${{ env.rust_toolchain }}
+      - name: Setup | ldproxy
+        run: cargo install ldproxy
+      - name: Build | Fmt Check
+        run: cargo fmt -- --check
+#      - name: Build | Clippy
+#        run: export RUST_ESP32_STD_DEMO_WIFI_SSID=ssid; export RUST_ESP32_STD_DEMO_WIFI_PASS=pass; cargo clippy --no-deps --target riscv32imc-esp-espidf -- -Dwarnings
+      - name: Build | Compile
+        run: export RUST_ESP32_STD_DEMO_WIFI_SSID=ssid; export RUST_ESP32_STD_DEMO_WIFI_PASS=pass; cargo build --target riscv32imc-esp-espidf
