@@ -33,3 +33,7 @@ jobs:
 #        run: export RUST_ESP32_STD_DEMO_WIFI_SSID=ssid; export RUST_ESP32_STD_DEMO_WIFI_PASS=pass; cargo clippy --no-deps --target riscv32imc-esp-espidf -- -Dwarnings
       - name: Build | Compile
         run: export RUST_ESP32_STD_DEMO_WIFI_SSID=ssid; export RUST_ESP32_STD_DEMO_WIFI_PASS=pass; cargo build --target riscv32imc-esp-espidf
+      - uses: actions/upload-artifact@v2
+        with:
+          name: gateway-rs
+          path: ./target/riscv32imc-esp-espidf/debug/gateway-rs
