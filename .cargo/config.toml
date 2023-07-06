@@ -4,29 +4,22 @@
 # target = "xtensa-esp32s2-espidf"
 #target = "xtensa-esp32s3-espidf"
 target = "riscv32imc-esp-espidf"
+# target = "riscv32imac-esp-espidf"
 #target = "x86_64-apple-darwin"
 
-[target.xtensa-esp32-espidf]
-linker = "ldproxy"
-runner = "espflash --monitor"
-#rustflags = ["--cfg", "espidf_time64"] # Extending time_t for ESP IDF 5: https://github.com/esp-rs/rust/issues/110
-
-[target.xtensa-esp32s2-espidf]
-linker = "ldproxy"
-runner = "espflash --monitor"
-#rustflags = ["--cfg", "espidf_time64"] # Extending time_t for ESP IDF 5: https://github.com/esp-rs/rust/issues/110
-
-[target.xtensa-esp32s3-espidf]
-linker = "ldproxy"
-runner = "espflash --monitor"
-#rustflags = ["--cfg", "espidf_time64"] # Extending time_t for ESP IDF 5: https://github.com/esp-rs/rust/issues/110
-
+# [target.xtensa-esp32-espidf]
+# [target.xtensa-esp32s2-espidf]
+# [target.xtensa-esp32s3-espidf]
 [target.riscv32imc-esp-espidf]
 linker = "ldproxy"
-runner = "espflash --monitor"
-# Future - necessary for the experimental "native build" of esp-idf-sys with ESP32C3. See also https://github.com/ivmarkov/embuild/issues/16
-# For ESP-IDF 5 add `espidf_time64` and for earlier versions - remove this flag: https://github.com/esp-rs/rust/issues/110
-rustflags = ["-C", "default-linker-libraries"]
+runner = "espflash flash --monitor" # Select this runner for espflash v2.x.x
+# {% if espidfver != "v4.4" and arch == "xtensa" -%}
+# rustflags = [ "--cfg",  "espidf_time64"] # Extending time_t for ESP IDF 5: https://github.com/esp-rs/rust/issues/110
+# {%- elsif espidfver != "v4.4" and arch == "riscv" -%}
+rustflags = ["--cfg", "espidf_time64", "-C", "default-linker-libraries"]
+# {%- elsif espidfver == "v4.4" and arch == "riscv" -%}
+# rustflags = ["-C", "default-linker-libraries"]
+# {%- endif %}
 
 [unstable]
 
@@ -36,6 +29,7 @@ build-std = ["std", "panic_abort"]
 [env]
 # Note: these variables are not used when using pio builder (`cargo build --features pio`)
 # Builds against ESP-IDF stable (v4.4)
-ESP_IDF_VERSION = "release/v4.4"
+# ESP_IDF_VERSION = "release/v4.4"
+ESP_IDF_VERSION = "release/v5.1"
 # Builds against ESP-IDF master (mainline)
 #ESP_IDF_VERSION = "master"

@@ -46,17 +46,25 @@ pub mod wifi {
         sysloop: EspSystemEventLoop,
     ) -> Result<Box<EspWifi<'static>>> {
         use std::net::Ipv4Addr;
-
+    
         use esp_idf_svc::handle::RawHandle;
-
-        let mut wifi = Box::new(EspWifi::new(modem, sysloop.clone(), None)?);
-
-        info!("Wifi created, about to scan");
-
+    
+        let mut esp_wifi = EspWifi::new(modem, sysloop.clone(), None)?;
+    
+        let mut wifi = BlockingWifi::wrap(&mut esp_wifi, sysloop)?;
+    
+        wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+    
+        info!("Starting wifi...");
+    
+        wifi.start()?;
+    
+        info!("Scanning...");
+    
         let ap_infos = wifi.scan()?;
-
+    
         let ours = ap_infos.into_iter().find(|a| a.ssid == SSID);
-
+    
         let channel = if let Some(ours) = ours {
             info!(
                 "Found configured access point {} on channel {}",
@@ -65,12 +73,12 @@ pub mod wifi {
             Some(ours.channel)
         } else {
             info!(
-            "Configured access point {} not found during scanning, will go with unknown channel",
-            SSID
-        );
+                "Configured access point {} not found during scanning, will go with unknown channel",
+                SSID
+            );
             None
         };
-
+    
         wifi.set_configuration(&Configuration::Mixed(
             ClientConfiguration {
                 ssid: SSID.into(),
@@ -84,37 +92,21 @@ pub mod wifi {
                 ..Default::default()
             },
         ))?;
-
-        wifi.start()?;
-
-        info!("Starting wifi...");
-
-        if !WifiWait::new(&sysloop)?
-            .wait_with_timeout(Duration::from_secs(20), || wifi.is_started().unwrap())
-        {
-            bail!("Wifi did not start");
-        }
-
+    
         info!("Connecting wifi...");
-
+    
         wifi.connect()?;
-
-        if !EspNetifWait::new::<EspNetif>(wifi.sta_netif(), &sysloop)?.wait_with_timeout(
-            Duration::from_secs(20),
-            || {
-                wifi.is_connected().unwrap()
-                    && wifi.sta_netif().get_ip_info().unwrap().ip != Ipv4Addr::new(0, 0, 0, 0)
-            },
-        ) {
-            bail!("Wifi did not connect or did not receive a DHCP lease");
-        }
-
-        let ip_info = wifi.sta_netif().get_ip_info()?;
-
+    
+        info!("Waiting for DHCP lease...");
+    
+        wifi.wait_netif_up()?;
+    
+        let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
+    
         info!("Wifi DHCP info: {:?}", ip_info);
-
+    
         ping(ip_info.subnet.gateway)?;
-
-        Ok(wifi)
+    
+        Ok(Box::new(esp_wifi))
     }
 }
